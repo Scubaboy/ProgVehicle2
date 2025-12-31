@@ -23,7 +23,11 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
+#set(PICO_CXX_ENABLE_EXCEPTIONS 1)
 set(PICO_BOARD pico2_w CACHE STRING "Board type")
+
+# Set top source code folder
+set(SOURCE_FOLDER "src")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -37,7 +41,18 @@ pico_sdk_init()
 
 add_executable(ProgVehicle2 
 ProgVehicle2.cpp 
-"${CMAKE_CURRENT_SOURCE_DIR}/Source Files/Comms/Comms.cpp" 
+"${SOURCE_FOLDER}/Source Files/Comms/BluetoothComms.cpp"
+"${SOURCE_FOLDER}/Source Files/Json/Parsers/MetaPacket/MetaPacketParser.cpp"
+"${SOURCE_FOLDER}/Source Files/Json/Parsers/TelemetryPacket/TelemetryPacketParser.cpp"
+"${SOURCE_FOLDER}/Source Files/Json/Parsers/ProgramPacket/ProgramPacketParser.cpp"
+"${SOURCE_FOLDER}/Source Files/Json/Parsers/ControlPacket/ControlPacketParser.cpp"
+"${SOURCE_FOLDER}/Source Files/Json/Parsers/MovementPacket/MovementPacketParser.cpp"
+"${SOURCE_FOLDER}/Source Files/Controllers/Command/CommandController.cpp"
+"${SOURCE_FOLDER}/Source Files/Storage/Buffers/CircularBuffer.cpp"
+"${SOURCE_FOLDER}/Source Files/TemplateDefinitions.cpp"
+"${SOURCE_FOLDER}/Source Files/Controllers/CoreQueue/Core0Core1QueueController.cpp"
+"${SOURCE_FOLDER}/Source Files/Cores/CoreTask/Core0Task.cpp"
+"${SOURCE_FOLDER}/Source Files/Cores/CoreTask/Core1Task.cpp"
 )
 
 pico_set_program_name(ProgVehicle2 "ProgVehicle2")
@@ -49,13 +64,34 @@ pico_enable_stdio_usb(ProgVehicle2 0)
 
 # Add the standard library to the build
 target_link_libraries(ProgVehicle2
-        pico_stdlib)
+        pico_stdlib
+        pico_btstack_classic
+        pico_btstack_cyw43
+        pico_multicore
+  )
 
 # Add the standard include files to the build
 target_include_directories(ProgVehicle2 PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
-        "${CMAKE_CURRENT_SOURCE_DIR}/Header Files/Comms"
-        
+        "${SOURCE_FOLDER}/Header Files/Comms/"
+        "${SOURCE_FOLDER}/Header Files/"
+        "${SOURCE_FOLDER}/Header Files/Types"
+        "${SOURCE_FOLDER}/Header Files/Types/Controllers/"
+        "${SOURCE_FOLDER}/Header Files/Types/JsonDefinitions/"
+        "${SOURCE_FOLDER}/Header Files/Json/",
+        "${SOURCE_FOLDER}/Header Files/Json/Converters",
+        "${SOURCE_FOLDER}/Header Files/Json/Parsers"
+        "${SOURCE_FOLDER}/Header Files/Json/Parsers/MetaPacket"
+        "${SOURCE_FOLDER}/Header Files/Json/Parsers/TelemetryPacket"
+        "${SOURCE_FOLDER}/Header Files/Json/Parsers/ProgramPacket"
+        "${SOURCE_FOLDER}/Header Files/Json/Parsers/ControlPacket"
+        "${SOURCE_FOLDER}/Header Files/Json/Parsers/MovementPacket"
+        "${SOURCE_FOLDER}/Header Files/Control/"      
+        "${SOURCE_FOLDER}/Header Files/Controllers/Command/"  
+        "${SOURCE_FOLDER}/Header Files/Controllers/CoreQueue/" 
+        "${SOURCE_FOLDER}/Header Files/Storage/Buffers/" 
+        "${SOURCE_FOLDER}/Source Files/Storage/Buffers/"
+        "${SOURCE_FOLDER}/Header Files/Cores/CoreTask"
 )
 
 

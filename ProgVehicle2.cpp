@@ -1,41 +1,55 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
-#include "pico/cyw43_arch.h"
-#include "Comms.h"
+#include "BluetoothComms.h"
+#include "MetaPacketParser.h"
+#include "CommandController.h"
+#include "CommandControllerTypes.h"
+#include "Core0Core1QueueController.h"
+#include "Core0Task.h"
+#include "Core1Task.h"
+#include "pico/multicore.h"
 
-using namespace SocketComms; // namespace SocketComms
+using namespace CommandControllerDefinitions;
+using namespace CommandCtrl;
+using namespace PacketParser;
+using namespace Bluetooth;
+using namespace Core0Core1QueueCtrl;
+using namespace Core0TaskDefinition;
+using namespace Core1TaskDefinition;
 
+MetaPacketParser metaPacketParser;
+CommandController commandController;
+Core0Core1QueueController core0Core1QueueCtrl;
+Core0Task core0Task(&core0Core1QueueCtrl, &commandController);
+Core1Task core1Task(&core0Core1QueueCtrl);
+
+void Core1_Main()
+{
+    core1Task.Task();
+}
+
+void BluetoothPacketReceiver(char *packet, short unsigned int size)
+{
+    auto result = metaPacketParser.Parse(packet, size);
+    auto command = new CommandCtrlType();
+
+    command->Command = result->Data;
+    command->Type = result->Type;
+     commandController.QueueCommand(command);
+
+    delete result;
+}
 
 int main()
 {
-    Comms test;
-
-   
-
+    //Initialise stdio
     stdio_init_all();
- test.Initialise();
-    // Initialise the Wi-Fi chip
-    if (cyw43_arch_init()) {
-        printf("Wi-Fi init failed\n");
-        return -1;
-    }
-
-    // Enable wifi station
-    cyw43_arch_enable_sta_mode();
-
-    printf("Connecting to Wi-Fi...\n");
-    if (cyw43_arch_wifi_connect_timeout_ms("Your Wi-Fi SSID", "Your Wi-Fi Password", CYW43_AUTH_WPA2_AES_PSK, 30000)) {
-        printf("failed to connect.\n");
-        return 1;
-    } else {
-        printf("Connected.\n");
-        // Read the ip address in a human readable way
-        uint8_t *ip_address = (uint8_t*)&(cyw43_state.netif[0].ip_addr.addr);
-        printf("IP address %d.%d.%d.%d\n", ip_address[0], ip_address[1], ip_address[2], ip_address[3]);
-    }
-
-    while (true) {
-        printf("Hello, world!\n");
-        sleep_ms(1000);
-    }
+    //Initialise core queues
+    core0Core1QueueCtrl.Initialise();
+    //Initialise bluetooth
+    BluetoothComms::SppServiceSetup(BluetoothPacketReceiver);
+     //Launch core1 task
+    multicore_launch_core1(Core1_Main);
+    //Launch core0 task
+    core0Task.Task();
 }
